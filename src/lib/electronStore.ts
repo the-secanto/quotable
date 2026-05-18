@@ -1,6 +1,22 @@
 import { create } from 'zustand';
 import { supabase, isSupabaseConfigured } from './supabase';
 
+declare global {
+  interface Window {
+    electron?: any;
+  }
+}
+
+export type ThemeId =
+  | 'dark'
+  | 'warm'
+  | 'pastel'
+  | 'light'
+  | 'sage'
+  | 'synthwave'
+  | 'sunset'
+  | 'mono';
+
 export type Quote = {
   id: string;
   text: string;
@@ -36,6 +52,25 @@ export type Settings = {
   updated_at?: string;
 };
 
+const STORAGE_KEY = 'muse_state_v1';
+
+function loadFromStorage() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveToStorage(state: { quotes: Quote[]; rules: QuoteRule[]; settings: Settings }) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {}
+}
+
 interface AppState {
   quotes: Quote[];
   rules: QuoteRule[];
@@ -44,74 +79,124 @@ interface AppState {
   user: any | null;
   syncing: boolean;
   lastSynced: Date | null;
-  
+  overlayOpen: boolean;
+
   init: () => Promise<void>;
   setUser: (user: any) => void;
-  
+  setOverlayOpen: (open: boolean) => void;
+
   addQuote: (quote: Omit<Quote, 'id'>) => Promise<void>;
   updateQuote: (id: string, patch: Partial<Quote>) => Promise<void>;
   deleteQuote: (id: string) => Promise<void>;
-  
+
   addRule: (rule: Omit<QuoteRule, 'id'>) => Promise<void>;
   updateRule: (id: string, patch: Partial<QuoteRule>) => Promise<void>;
   deleteRule: (id: string) => Promise<void>;
-  
+
   updateSetting: (key: string, value: any) => Promise<void>;
   triggerOverlay: () => Promise<void>;
-  
+
   sync: () => Promise<void>;
 }
+
+const defaultSettings: Settings = {
+  theme: 'dark',
+  opacity: '0.9',
+  fontSize: '48',
+  overlayDuration: '10',
+  inactivityHours: '6',
+  startupTrigger: '1',
+  wakeTrigger: '1',
+  launchAtStartup: '0',
+  minimizeToTray: '1',
+  showAuthor: true,
+};
 
 export const useAppStore = create<AppState>((set, get) => ({
   quotes: [],
   rules: [],
-  settings: {
-    theme: 'dark',
-    opacity: '0.9',
-    fontSize: '24',
-    overlayDuration: '10',
-    inactivityHours: '6',
-    startupTrigger: '1',
-    wakeTrigger: '1',
-    launchAtStartup: '0',
-    minimizeToTray: '1',
-    showAuthor: true,
-  },
+  settings: defaultSettings,
   initialized: false,
   user: null,
   syncing: false,
   lastSynced: null,
+  overlayOpen: false,
 
   setUser: (user) => {
     set({ user });
-    if (user) get().sync();
+    if (user) {
+      get().sync();
+      // Re-initialize with user-specific data
+      get().init();
+    }
   },
 
+  setOverlayOpen: (open) => set({ overlayOpen: open }),
+
   init: async () => {
-    if (typeof window === 'undefined' || !window.electron) return;
-    
-    const [quotes, settings, rules] = await Promise.all([
-      window.electron.getQuotes(),
-      window.electron.getSettings(),
-      window.electron.getRules()
-    ]);
-    
-    const fullSettings = { 
-      ...get().settings, 
-      ...settings,
-      showAuthor: settings.showAuthor === '1' || settings.showAuthor === true || settings.showAuthor === undefined
-    };
+    if (typeof window === 'undefined') return;
 
-    set({ quotes, settings: fullSettings, rules, initialized: true });
+    const { user } = get();
+    const userId = user?.id || null;
 
-    // Listen for broadcasted setting updates
-    window.electron.onSettingUpdated(({ key, value }: { key: string, value: any }) => {
-      set({
-        settings: { ...get().settings, [key]: value.toString() }
-      });
-    });
+    // Electron path
+    if (window.electron && window.electron.getQuotes) {
+      try {
+        const [quotes, settings, rules] = await Promise.all([
+          window.electron.getQuotes(userId),
+          window.electron.getSettings(),
+          window.electron.getRules(userId),
+        ]);
+        const fullSettings = {
+          ...get().settings,
+          ...settings,
+          showAuthor:
+            settings?.showAuthor === '1' ||
+            settings?.showAuthor === true ||
+            settings?.showAuthor === undefined,
+        };
+        set({ quotes, settings: fullSettings, rules, initialized: true });
+        window.electron.onSettingUpdated?.(
+          ({ key, value }: { key: string; value: any }) => {
+            set({ settings: { ...get().settings, [key]: value.toString() } });
+          }
+        );
+      } catch (e) {
+        console.error('Electron init failed, falling back to local', e);
+      }
+    } else {
+      // Browser fallback: localStorage
+      const stored = loadFromStorage();
+      if (stored) {
+        set({
+          quotes: stored.quotes || [],
+          rules: stored.rules || [],
+          settings: { ...defaultSettings, ...(stored.settings || {}) },
+          initialized: true,
+        });
+      } else {
+        // Seed with a couple of example quotes
+        const seed: Quote[] = [
+          {
+            id: crypto.randomUUID(),
+            text: 'The mind is everything. What you think you become.',
+            author: 'Buddha',
+            category: 'Wisdom',
+            updated_at: new Date().toISOString(),
+          },
+          {
+            id: crypto.randomUUID(),
+            text: 'Discipline equals freedom.',
+            author: 'Jocko Willink',
+            category: 'Discipline',
+            updated_at: new Date().toISOString(),
+          },
+        ];
+        set({ quotes: seed, initialized: true });
+        saveToStorage({ quotes: seed, rules: [], settings: get().settings });
+      }
+    }
 
-    // Start background sync every 5 minutes if online and logged in
     setInterval(() => {
       get().sync();
     }, 1000 * 60 * 5);
@@ -119,27 +204,29 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   addQuote: async (quote) => {
     const id = crypto.randomUUID();
-    const newQuote = { ...quote, id, updated_at: new Date().toISOString() };
-    await window.electron.addQuote(newQuote);
-    set({ quotes: [newQuote, ...get().quotes] });
-    get().sync(); // Attempt sync
+    const user_id = get().user?.id;
+    const newQuote = { ...quote, id, user_id, updated_at: new Date().toISOString() };
+    await window.electron?.addQuote?.(newQuote);
+    const next = [newQuote, ...get().quotes];
+    set({ quotes: next });
+    saveToStorage({ quotes: next, rules: get().rules, settings: get().settings });
+    get().sync();
   },
 
   updateQuote: async (id, patch) => {
     const updated_at = new Date().toISOString();
-    await window.electron.updateQuote(id, { ...patch, updated_at });
-    set({
-      quotes: get().quotes.map(q => q.id === id ? { ...q, ...patch, updated_at } : q)
-    });
-    get().sync(); // Attempt sync
+    await window.electron?.updateQuote?.(id, { ...patch, updated_at });
+    const next = get().quotes.map((q) => (q.id === id ? { ...q, ...patch, updated_at } : q));
+    set({ quotes: next });
+    saveToStorage({ quotes: next, rules: get().rules, settings: get().settings });
+    get().sync();
   },
 
   deleteQuote: async (id) => {
-    await window.electron.deleteQuote(id);
-    set({
-      quotes: get().quotes.filter(q => q.id !== id)
-    });
-    // For sync deletion, we might need a tombstone table or just delete from remote
+    await window.electron?.deleteQuote?.(id);
+    const next = get().quotes.filter((q) => q.id !== id);
+    set({ quotes: next });
+    saveToStorage({ quotes: next, rules: get().rules, settings: get().settings });
     if (isSupabaseConfigured && get().user) {
       await supabase!.from('quotes').delete().eq('id', id);
     }
@@ -147,42 +234,54 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   addRule: async (rule) => {
     const id = crypto.randomUUID();
+    const user_id = get().user?.id;
     const updated_at = new Date().toISOString();
-    const newRule = { ...rule, id, updated_at };
-    await window.electron.addRule(newRule);
-    set({ rules: [...get().rules, newRule] });
+    const newRule = { ...rule, id, user_id, updated_at };
+    await window.electron?.addRule?.(newRule);
+    const next = [...get().rules, newRule];
+    set({ rules: next });
+    saveToStorage({ quotes: get().quotes, rules: next, settings: get().settings });
     get().sync();
   },
 
   updateRule: async (id, patch) => {
     const updated_at = new Date().toISOString();
-    await window.electron.updateRule(id, { ...patch, updated_at });
-    set({
-      rules: get().rules.map(r => r.id === id ? { ...r, ...patch, updated_at } : r)
-    });
+    await window.electron?.updateRule?.(id, { ...patch, updated_at });
+    const next = get().rules.map((r) => (r.id === id ? { ...r, ...patch, updated_at } : r));
+    set({ rules: next });
+    saveToStorage({ quotes: get().quotes, rules: next, settings: get().settings });
     get().sync();
   },
 
   deleteRule: async (id) => {
-    await window.electron.deleteRule(id);
-    set({
-      rules: get().rules.filter(r => r.id !== id)
-    });
+    await window.electron?.deleteRule?.(id);
+    const next = get().rules.filter((r) => r.id !== id);
+    set({ rules: next });
+    saveToStorage({ quotes: get().quotes, rules: next, settings: get().settings });
     if (isSupabaseConfigured && get().user) {
       await supabase!.from('quote_rules').delete().eq('id', id);
     }
   },
 
   updateSetting: async (key, value) => {
-    await window.electron.updateSetting(key, value);
-    set({
-      settings: { ...get().settings, [key]: value.toString(), updated_at: new Date().toISOString() }
-    });
+    await window.electron?.updateSetting?.(key, value);
+    const nextSettings = {
+      ...get().settings,
+      [key]: typeof value === 'boolean' ? value : value.toString(),
+      updated_at: new Date().toISOString(),
+    } as Settings;
+    set({ settings: nextSettings });
+    saveToStorage({ quotes: get().quotes, rules: get().rules, settings: nextSettings });
     get().sync();
   },
 
   triggerOverlay: async () => {
-    await window.electron.triggerOverlay();
+    const userId = get().user?.id || null;
+    if (window.electron?.triggerOverlay) {
+      await window.electron.triggerOverlay(userId);
+    } else {
+      set({ overlayOpen: true });
+    }
   },
 
   sync: async () => {
@@ -190,13 +289,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (syncing || !user || !isSupabaseConfigured || !navigator.onLine) return;
 
     set({ syncing: true });
-    console.log("Starting sync...");
-
     try {
-      // 1. Sync Quotes
       const { quotes: localQuotes } = get();
-      
-      // Pull remote quotes
       const { data: remoteQuotes, error: qError } = await supabase!
         .from('quotes')
         .select('*')
@@ -204,60 +298,25 @@ export const useAppStore = create<AppState>((set, get) => ({
 
       if (!qError && remoteQuotes) {
         for (const remote of remoteQuotes) {
-          const local = localQuotes.find(l => l.id === remote.id);
+          const local = localQuotes.find((l) => l.id === remote.id);
           if (!local || new Date(remote.updated_at) > new Date(local.updated_at || 0)) {
-            // Remote is newer or missing locally
-            await window.electron.addQuote({ ...remote, synced: true });
+            await window.electron?.addQuote?.({ ...remote, synced: true });
           } else if (new Date(local.updated_at || 0) > new Date(remote.updated_at)) {
-            // Local is newer, push to remote
             await supabase!.from('quotes').upsert([{ ...local, user_id: user.id, synced: true }]);
           }
         }
-        
-        // Push local-only quotes or newer local quotes not in remote
         for (const local of localQuotes) {
-          if (!remoteQuotes.find(r => r.id === local.id)) {
-             await supabase!.from('quotes').upsert([{ ...local, user_id: user.id, synced: true }]);
-          }
-        }
-      }
-
-      // 2. Sync Rules
-      const { rules: localRules } = get();
-      const { data: remoteRules } = await supabase!
-        .from('quote_rules')
-        .select('*')
-        .eq('user_id', user.id);
-
-      if (remoteRules) {
-        for (const remote of remoteRules) {
-          const local = localRules.find(l => l.id === remote.id);
-          if (!local || new Date(remote.updated_at) > new Date(local.updated_at || 0)) {
-            await window.electron.addRule(remote);
-          } else if (new Date(local.updated_at || 0) > new Date(remote.updated_at)) {
-            await supabase!.from('quote_rules').upsert([{ ...local, user_id: user.id }]);
-          }
-        }
-        for (const local of localRules) {
-          if (!remoteRules.find(r => r.id === local.id)) {
-            await supabase!.from('quote_rules').upsert([{ ...local, user_id: user.id }]);
+          if (!remoteQuotes.find((r) => r.id === local.id)) {
+            await supabase!.from('quotes').upsert([{ ...local, user_id: user.id, synced: true }]);
           }
         }
       }
 
       set({ lastSynced: new Date() });
-      
-      // Refresh local state after sync
-      const [newQuotes, newRules] = await Promise.all([
-        window.electron.getQuotes(),
-        window.electron.getRules()
-      ]);
-      set({ quotes: newQuotes, rules: newRules });
-
     } catch (e) {
-      console.error("Sync failed", e);
+      console.error('Sync failed', e);
     } finally {
       set({ syncing: false });
     }
-  }
+  },
 }));

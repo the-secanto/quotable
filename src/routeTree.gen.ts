@@ -13,6 +13,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as QuotesRouteImport } from './routes/quotes'
 import { Route as PreviewRouteImport } from './routes/preview'
 import { Route as ExploreRouteImport } from './routes/explore'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppearanceRouteImport } from './routes/appearance'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -36,6 +37,11 @@ const ExploreRoute = ExploreRouteImport.update({
   path: '/explore',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppearanceRoute = AppearanceRouteImport.update({
   id: '/appearance',
   path: '/appearance',
@@ -50,6 +56,7 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/appearance': typeof AppearanceRoute
+  '/auth': typeof AuthRoute
   '/explore': typeof ExploreRoute
   '/preview': typeof PreviewRoute
   '/quotes': typeof QuotesRoute
@@ -58,6 +65,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/appearance': typeof AppearanceRoute
+  '/auth': typeof AuthRoute
   '/explore': typeof ExploreRoute
   '/preview': typeof PreviewRoute
   '/quotes': typeof QuotesRoute
@@ -67,6 +75,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/appearance': typeof AppearanceRoute
+  '/auth': typeof AuthRoute
   '/explore': typeof ExploreRoute
   '/preview': typeof PreviewRoute
   '/quotes': typeof QuotesRoute
@@ -77,16 +86,25 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/appearance'
+    | '/auth'
     | '/explore'
     | '/preview'
     | '/quotes'
     | '/settings'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/appearance' | '/explore' | '/preview' | '/quotes' | '/settings'
+  to:
+    | '/'
+    | '/appearance'
+    | '/auth'
+    | '/explore'
+    | '/preview'
+    | '/quotes'
+    | '/settings'
   id:
     | '__root__'
     | '/'
     | '/appearance'
+    | '/auth'
     | '/explore'
     | '/preview'
     | '/quotes'
@@ -96,6 +114,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppearanceRoute: typeof AppearanceRoute
+  AuthRoute: typeof AuthRoute
   ExploreRoute: typeof ExploreRoute
   PreviewRoute: typeof PreviewRoute
   QuotesRoute: typeof QuotesRoute
@@ -132,6 +151,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ExploreRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/appearance': {
       id: '/appearance'
       path: '/appearance'
@@ -152,6 +178,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppearanceRoute: AppearanceRoute,
+  AuthRoute: AuthRoute,
   ExploreRoute: ExploreRoute,
   PreviewRoute: PreviewRoute,
   QuotesRoute: QuotesRoute,

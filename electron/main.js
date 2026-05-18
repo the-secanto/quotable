@@ -10,7 +10,68 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 let mainWindow = null;
 
+// Deep linking protocol
+if (process.defaultApp) {
+  if (process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient('muse-app', process.execPath, [path.resolve(process.argv[1])]);
+  }
+} else {
+  app.setAsDefaultProtocolClient('muse-app');
+}
+
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', (event, commandLine) => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
+      
+      // Protocol handler for Windows/Linux
+      const url = commandLine.pop();
+      if (url && url.includes('muse-app://')) {
+        mainWindow.webContents.send('navigate-to', url);
+      }
+    }
+  });
+
+  app.whenReady().then(() => {
+    initDb();
+    registerHandlers();
+    createWindow();
+    createTray(mainWindow);
+    initScheduler();
+
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
+      } else if (mainWindow) {
+        mainWindow.show();
+        mainWindow.focus();
+      }
+    });
+  });
+}
+
+// Protocol handler for macOS
+app.on('open-url', (event, url) => {
+  event.preventDefault();
+  if (mainWindow) {
+    mainWindow.webContents.send('navigate-to', url);
+  } else {
+    // If window not yet created, store the URL or wait
+    app.once('browser-window-created', () => {
+      mainWindow.webContents.send('navigate-to', url);
+    });
+  }
+});
+
 function createWindow() {
+  const isDev = !app.isPackaged;
+  
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -22,11 +83,17 @@ function createWindow() {
     titleBarStyle: 'default',
   });
 
-  const isDev = !app.isPackaged;
+  const isAutostart = process.argv.includes('--autostart');
+  
   if (isDev) {
     mainWindow.loadURL('http://localhost:8080');
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+  }
+
+  if (!isAutostart) {
+    mainWindow.show();
+    mainWindow.focus();
   }
 
   mainWindow.on('close', (event) => {
@@ -39,20 +106,6 @@ function createWindow() {
     return false;
   });
 }
-
-app.whenReady().then(() => {
-  initDb();
-  registerHandlers();
-  createWindow();
-  createTray(mainWindow);
-  initScheduler();
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    }
-  });
-});
 
 app.on('before-quit', () => {
   app.isQuitting = true;

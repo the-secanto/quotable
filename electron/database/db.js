@@ -109,7 +109,7 @@ export function initDb() {
       ['minimizeToTray', '1']
     ];
     
-    const insert = db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)');
+    const insert = db.prepare('INSERT OR IGNORE INTO settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)');
     for (const [key, value] of defaultSettings) {
       insert.run(key, value);
     }

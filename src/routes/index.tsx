@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowUpRight, Clock, Quote as QuoteIcon, Sparkles } from "lucide-react";
+
 import { ClientOnly, useQuotes, useSettings } from "@/lib/store";
 import { QuoteOverlay } from "@/components/QuoteOverlay";
 
@@ -28,23 +29,15 @@ function DashboardInner() {
 
   return (
     <div className="px-10 py-12 max-w-6xl mx-auto">
-      <header className="flex items-end justify-between mb-10">
-        <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground mb-3">
-            Dashboard
-          </p>
-          <h1 className="font-serif text-4xl">Good to see you again.</h1>
-          <p className="text-muted-foreground mt-2 max-w-lg">
-            Muse waits patiently in the background. When you return after a long break,
-            it greets you with what matters.
-          </p>
-        </div>
-        <Link
-          to="/preview"
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition shadow-glow"
-        >
-          Preview overlay <ArrowUpRight className="h-4 w-4" />
-        </Link>
+      <header className="mb-10">
+        <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground mb-3">
+          Dashboard
+        </p>
+        <h1 className="font-serif text-4xl">Good to see you again.</h1>
+        <p className="text-muted-foreground mt-2 max-w-lg">
+          Muse waits patiently in the background. When you return after a long break,
+          it greets you with what matters.
+        </p>
       </header>
 
       <div className="grid grid-cols-3 gap-4 mb-10">

@@ -21,7 +21,7 @@ export function useSettings() {
     ...settings,
     theme: settings.theme as ThemeId,
     inactivityHours: parseFloat(settings.inactivityHours || "6"),
-    showAuthor: settings.showAuthor === true || settings.showAuthor === "1" || settings.showAuthor === undefined,
+    showAuthor: settings.showAuthor !== false,
     ambientSound: false, 
   };
 

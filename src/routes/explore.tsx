@@ -1,6 +1,6 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Heart, Search, Filter, Sparkles, TrendingUp, Clock, LogIn, Plus, Globe as GlobeIcon } from "lucide-react";
+import { Heart, Search, Sparkles, TrendingUp, Clock, LogIn, Plus, Globe as GlobeIcon } from "lucide-react";
 import { ClientOnly } from "@/lib/store";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useAppStore } from "@/lib/electronStore";
@@ -148,12 +148,12 @@ function ExplorePage() {
           Sign in to explore quotes shared by others, save them to your library, and sync your collection across devices.
         </p>
         <div className="flex gap-4">
-          <button 
-            onClick={() => document.getElementById('sidebar-login-input')?.focus()}
+          <Link
+            to="/auth"
             className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-primary text-primary-foreground font-medium hover:opacity-90 transition"
           >
             <LogIn className="h-4 w-4" /> Sign in to start
-          </button>
+          </Link>
         </div>
       </div>
     );

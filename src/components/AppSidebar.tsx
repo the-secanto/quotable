@@ -27,11 +27,8 @@ export function AppSidebar() {
   };
 
   const handlePreviewOverlay = (e: React.MouseEvent) => {
-    // @ts-ignore
-    if (window.electron) {
-      e.preventDefault();
-      triggerOverlay();
-    }
+    e.preventDefault();
+    triggerOverlay();
   };
 
   return (
@@ -83,7 +80,9 @@ export function AppSidebar() {
               <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center">
                 <User className="h-3 w-3 text-primary" />
               </div>
-              <div className="text-xs font-medium truncate flex-1">{user.email}</div>
+              <div className="text-xs font-medium truncate flex-1">
+                {user.user_metadata?.username || user.email}
+              </div>
             </div>
             <button 
               onClick={() => signOut()}
@@ -93,27 +92,20 @@ export function AppSidebar() {
             </button>
           </div>
         ) : (
-          <form onSubmit={handleLogin}>
-            <div className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
-              <Cloud className="h-3 w-3" /> Sync quotes
+          <div>
+            <div className="text-xs text-muted-foreground mb-3 flex items-center gap-1">
+              <Cloud className="h-3 w-3" /> Sync your library
             </div>
-            <input 
-              id="sidebar-login-input"
-              type="email"
-              placeholder="Email for magic link"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-background/50 border border-border rounded px-2 py-1.5 text-xs mb-2 focus:outline-none focus:ring-1 focus:ring-primary"
-              required
-            />
-            <button 
-              type="submit"
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground rounded py-1.5 text-xs font-medium hover:opacity-90 disabled:opacity-50 transition"
+            <Link
+              to="/auth"
+              className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground rounded-full py-2 text-xs font-medium hover:opacity-90 transition shadow-glow"
             >
-              <LogIn className="h-3 w-3" /> {loading ? "Sending..." : "Login"}
-            </button>
-          </form>
+              <LogIn className="h-3 w-3" /> Sign in or Join
+            </Link>
+            <p className="text-[10px] text-muted-foreground mt-3 text-center leading-tight">
+              Create an account to backup and sync your quotes across devices.
+            </p>
+          </div>
         )}
       </div>
 

@@ -62,11 +62,17 @@ export function createOverlayWindow() {
 export function showOverlay(quote) {
   if (!overlayWin) {
     createOverlayWindow();
+    // Wait for the window to finish loading before sending the quote
+    overlayWin.webContents.once('did-finish-load', () => {
+      overlayWin.webContents.send('display-quote', quote);
+      overlayWin.show();
+      overlayWin.focus();
+    });
+  } else {
+    overlayWin.webContents.send('display-quote', quote);
+    overlayWin.show();
+    overlayWin.focus();
   }
-  
-  overlayWin.webContents.send('display-quote', quote);
-  overlayWin.show();
-  overlayWin.focus();
 }
 
 export function closeOverlay() {

@@ -10,31 +10,26 @@ export const Route = createFileRoute("/appearance")({
   ),
 });
 
-const themes: { id: ThemeId; name: string; description: string; swatch: string[] }[] = [
-  {
-    id: "dark",
-    name: "Dark Focus",
-    description: "Deep navy. Quiet amber. Late-night clarity.",
-    swatch: ["#1a1f2e", "#e8b86b", "#5a6f9b"],
-  },
-  {
-    id: "warm",
-    name: "Warm Calm",
-    description: "Lamp-lit room. Slow evenings. Gentle warmth.",
-    swatch: ["#2a1f15", "#d99964", "#7a5b3f"],
-  },
-  {
-    id: "pastel",
-    name: "Soft Pastel",
-    description: "Morning haze. Pale sky. Soft starts.",
-    swatch: ["#f7eaf3", "#c285c7", "#aedce6"],
-  },
-  {
-    id: "light",
-    name: "Minimal Light",
-    description: "Pure white. Sharp ink. Nothing extra.",
-    swatch: ["#ffffff", "#1a1a1f", "#9a9aa2"],
-  },
+const themes: { id: ThemeId; name: string; description: string; group: string; swatch: string[] }[] = [
+  // Calm (4)
+  { id: "dark", name: "Dark Focus", description: "Deep navy. Quiet amber. Late-night clarity.", group: "Calm",
+    swatch: ["#1a1f2e", "#e8b86b", "#5a6f9b"] },
+  { id: "warm", name: "Warm Calm", description: "Lamp-lit room. Slow evenings. Gentle warmth.", group: "Calm",
+    swatch: ["#2a1f15", "#d99964", "#7a5b3f"] },
+  { id: "pastel", name: "Soft Pastel", description: "Morning haze. Pale sky. Soft starts.", group: "Calm",
+    swatch: ["#f7eaf3", "#c285c7", "#aedce6"] },
+  { id: "sage", name: "Sage Mist", description: "Quiet forest. Cool moss. Steady breath.", group: "Calm",
+    swatch: ["#2b3a32", "#a8c8b0", "#6b8a78"] },
+  // Retro / Funky (2)
+  { id: "synthwave", name: "Synthwave", description: "Neon pink. Cyber blue. Midnight arcade.", group: "Retro",
+    swatch: ["#1a0d2e", "#ff4fcb", "#3ad6ff"] },
+  { id: "sunset", name: "Sunset Drive", description: "Hot orange. Magenta sky. Warm asphalt.", group: "Retro",
+    swatch: ["#2a1410", "#ff8a3d", "#e64976"] },
+  // Minimal / Coding (2)
+  { id: "light", name: "Minimal Light", description: "Pure white. Sharp ink. Nothing extra.", group: "Minimal",
+    swatch: ["#ffffff", "#1a1a1f", "#9a9aa2"] },
+  { id: "mono", name: "Mono Code", description: "Terminal black. Phosphor green. Pure focus.", group: "Minimal",
+    swatch: ["#111111", "#5cf28a", "#3a3a3a"] },
 ];
 
 function AppearancePage() {

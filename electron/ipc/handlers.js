@@ -6,124 +6,212 @@ import crypto from 'crypto';
 
 export function registerHandlers() {
   // Quotes
-  ipcMain.handle('get-quotes', async () => {
-    return db.prepare(`
-      SELECT q.*, (SELECT COUNT(*) FROM favorites WHERE quote_id = q.id) as likes_count 
-      FROM quotes q 
-      ORDER BY q.created_at DESC
-    `).all();
+  ipcMain.handle('get-quotes', async (event, userId) => {
+    try {
+      if (userId) {
+        return db.prepare(`
+          SELECT q.*, (SELECT COUNT(*) FROM favorites WHERE quote_id = q.id) as likes_count 
+          FROM quotes q 
+          WHERE q.user_id = ? OR q.user_id IS NULL
+          ORDER BY q.created_at DESC
+        `).all(userId);
+      }
+      return db.prepare(`
+        SELECT q.*, (SELECT COUNT(*) FROM favorites WHERE quote_id = q.id) as likes_count 
+        FROM quotes q 
+        WHERE q.user_id IS NULL
+        ORDER BY q.created_at DESC
+      `).all();
+    } catch (error) {
+      console.error('IPC: get-quotes error:', error);
+      return [];
+    }
   });
 
   ipcMain.handle('add-quote', async (event, quote) => {
-    const { id, text, author, category, user_id, is_public, local_only } = quote;
-    const stmt = db.prepare(`
-      INSERT INTO quotes (id, text, author, category, user_id, is_public, local_only, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-    `);
-    stmt.run(id, text, author, category, user_id || null, is_public ? 1 : 0, local_only ? 1 : 0);
-    return { success: true };
+    try {
+      const { id, text, author, category, user_id, is_public, local_only } = quote;
+      
+      if (user_id) {
+        db.prepare('INSERT OR IGNORE INTO users (id) VALUES (?)').run(user_id);
+      }
+
+      const stmt = db.prepare(`
+        INSERT INTO quotes (id, text, author, category, user_id, is_public, local_only, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      `);
+      stmt.run(id, text, author, category, user_id || null, is_public ? 1 : 0, local_only ? 1 : 0);
+      return { success: true };
+    } catch (error) {
+      console.error('IPC: add-quote error:', error);
+      return { success: false, error: error.message };
+    }
   });
 
   ipcMain.handle('update-quote', async (event, id, patch) => {
-    const keys = Object.keys(patch);
-    if (keys.length === 0) return { success: true };
+    try {
+      const keys = Object.keys(patch);
+      if (keys.length === 0) return { success: true };
 
-    const setClause = keys.map(key => `${key} = ?`).join(', ');
-    const values = keys.map(key => {
-      const val = patch[key];
-      if (typeof val === 'boolean') return val ? 1 : 0;
-      if (typeof val === 'object' && val !== null) return JSON.stringify(val);
-      return val;
-    });
+      const setClause = keys.map(key => `${key} = ?`).join(', ');
+      const values = keys.map(key => {
+        const val = patch[key];
+        if (typeof val === 'boolean') return val ? 1 : 0;
+        if (typeof val === 'object' && val !== null) return JSON.stringify(val);
+        return val;
+      });
 
-    const stmt = db.prepare(`UPDATE quotes SET ${setClause}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`);
-    stmt.run(...values, id);
-    return { success: true };
+      const stmt = db.prepare(`UPDATE quotes SET ${setClause}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`);
+      stmt.run(...values, id);
+      return { success: true };
+    } catch (error) {
+      console.error('IPC: update-quote error:', error);
+      return { success: false, error: error.message };
+    }
   });
 
   ipcMain.handle('delete-quote', async (event, id) => {
-    db.prepare('DELETE FROM quotes WHERE id = ?').run(id);
-    return { success: true };
+    try {
+      db.prepare('DELETE FROM quotes WHERE id = ?').run(id);
+      return { success: true };
+    } catch (error) {
+      console.error('IPC: delete-quote error:', error);
+      return { success: false, error: error.message };
+    }
   });
 
   // Settings
   ipcMain.handle('get-settings', async () => {
-    const rows = db.prepare('SELECT key, value FROM settings').all();
-    const settings = {};
-    rows.forEach(row => {
-      settings[row.key] = row.value;
-    });
-    return settings;
+    try {
+      const rows = db.prepare('SELECT key, value FROM settings').all();
+      const settings = {};
+      rows.forEach(row => {
+        settings[row.key] = row.value;
+      });
+      return settings;
+    } catch (error) {
+      console.error('IPC: get-settings error:', error);
+      return {};
+    }
   });
 
   ipcMain.handle('update-setting', async (event, key, value) => {
-    db.prepare('INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)').run(key, value.toString());
-    
-    if (key === 'launchAtStartup') {
-      const openAtLogin = value === '1' || value === true || value === 'true';
-      app.setLoginItemSettings({
-        openAtLogin: openAtLogin,
-        path: app.getPath('exe'),
-      });
-    }
+    try {
+      db.prepare('INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)').run(key, value.toString());
+      
+      if (key === 'launchAtStartup') {
+        const openAtLogin = value === '1' || value === true || value === 'true';
+        app.setLoginItemSettings({
+          openAtLogin: openAtLogin,
+          path: app.getPath('exe'),
+          args: ['--autostart']
+        });
+      }
 
-    // Broadcast to all windows
-    BrowserWindow.getAllWindows().forEach(win => {
-      win.webContents.send('setting-updated', { key, value });
-    });
-    
-    return { success: true };
+      BrowserWindow.getAllWindows().forEach(win => {
+        win.webContents.send('setting-updated', { key, value });
+      });
+      
+      return { success: true };
+    } catch (error) {
+      console.error('IPC: update-setting error:', error);
+      return { success: false, error: error.message };
+    }
   });
 
   // Overlay control
-  ipcMain.handle('trigger-overlay', async () => {
-    // Select a random quote
-    const quote = db.prepare('SELECT * FROM quotes ORDER BY RANDOM() LIMIT 1').get();
-    if (quote) {
-      showOverlay(quote);
+  ipcMain.handle('trigger-overlay', async (event, userId) => {
+    try {
+      let quote;
+      if (userId) {
+        quote = db.prepare('SELECT * FROM quotes WHERE user_id = ? OR user_id IS NULL ORDER BY RANDOM() LIMIT 1').get(userId);
+      } else {
+        quote = db.prepare('SELECT * FROM quotes WHERE user_id IS NULL ORDER BY RANDOM() LIMIT 1').get();
+      }
+      
+      if (quote) {
+        showOverlay(quote);
+      }
+      return { success: !!quote };
+    } catch (error) {
+      console.error('IPC: trigger-overlay error:', error);
+      return { success: false, error: error.message };
     }
-    return { success: !!quote };
   });
 
   ipcMain.handle('close-overlay', async () => {
-    closeOverlay();
+    try {
+      closeOverlay();
+      return { success: true };
+    } catch (error) {
+      console.error('IPC: close-overlay error:', error);
+      return { success: false, error: error.message };
+    }
   });
 
   // Quote Rules
-  ipcMain.handle('get-rules', async () => {
-    return db.prepare('SELECT * FROM quote_rules').all();
+  ipcMain.handle('get-rules', async (event, userId) => {
+    try {
+      if (userId) {
+        return db.prepare('SELECT * FROM quote_rules WHERE user_id = ? OR user_id IS NULL').all(userId);
+      }
+      return db.prepare('SELECT * FROM quote_rules WHERE user_id IS NULL').all();
+    } catch (error) {
+      console.error('IPC: get-rules error:', error);
+      return [];
+    }
   });
 
   ipcMain.handle('add-rule', async (event, rule) => {
-    const { id, trigger_type, trigger_config_json, enabled } = rule;
-    const stmt = db.prepare(`
-      INSERT INTO quote_rules (id, trigger_type, trigger_config_json, enabled, updated_at)
-      VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-    `);
-    stmt.run(id || crypto.randomUUID(), trigger_type, trigger_config_json, enabled ? 1 : 0);
-    return { success: true };
+    try {
+      const { id, trigger_type, trigger_config_json, enabled, user_id } = rule;
+      
+      if (user_id) {
+        db.prepare('INSERT OR IGNORE INTO users (id) VALUES (?)').run(user_id);
+      }
+
+      const stmt = db.prepare(`
+        INSERT INTO quote_rules (id, trigger_type, trigger_config_json, enabled, user_id, updated_at)
+        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      `);
+      stmt.run(id || crypto.randomUUID(), trigger_type, trigger_config_json, enabled ? 1 : 0, user_id || null);
+      return { success: true };
+    } catch (error) {
+      console.error('IPC: add-rule error:', error);
+      return { success: false, error: error.message };
+    }
   });
 
   ipcMain.handle('update-rule', async (event, id, patch) => {
-    const keys = Object.keys(patch);
-    if (keys.length === 0) return { success: true };
+    try {
+      const keys = Object.keys(patch);
+      if (keys.length === 0) return { success: true };
 
-    const setClause = keys.map(key => `${key} = ?`).join(', ');
-    const values = keys.map(key => {
-      const val = patch[key];
-      if (typeof val === 'boolean') return val ? 1 : 0;
-      if (typeof val === 'object' && val !== null) return JSON.stringify(val);
-      return val;
-    });
-    
-    const stmt = db.prepare(`UPDATE quote_rules SET ${setClause}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`);
-    stmt.run(...values, id);
-    return { success: true };
+      const setClause = keys.map(key => `${key} = ?`).join(', ');
+      const values = keys.map(key => {
+        const val = patch[key];
+        if (typeof val === 'boolean') return val ? 1 : 0;
+        if (typeof val === 'object' && val !== null) return JSON.stringify(val);
+        return val;
+      });
+      
+      const stmt = db.prepare(`UPDATE quote_rules SET ${setClause}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`);
+      stmt.run(...values, id);
+      return { success: true };
+    } catch (error) {
+      console.error('IPC: update-rule error:', error);
+      return { success: false, error: error.message };
+    }
   });
 
   ipcMain.handle('delete-rule', async (event, id) => {
-    db.prepare('DELETE FROM quote_rules WHERE id = ?').run(id);
-    return { success: true };
+    try {
+      db.prepare('DELETE FROM quote_rules WHERE id = ?').run(id);
+      return { success: true };
+    } catch (error) {
+      console.error('IPC: delete-rule error:', error);
+      return { success: false, error: error.message };
+    }
   });
 
   // Import / Export
