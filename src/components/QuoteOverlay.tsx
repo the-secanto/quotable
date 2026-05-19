@@ -42,33 +42,40 @@ export function QuoteOverlay({
         }}
       />
       
-      {/* background image layer - blended and very faint to allow see-through */}
+      {/* background image layer - optimized for low-end devices */}
       <div
         className="absolute inset-0 bg-cover bg-center scale-110 transition-all duration-700"
         style={{ 
           backgroundImage: `url(${desktopBg})`, 
-          filter: "blur(40px) brightness(0.5)",
-          opacity: opacityValue * 0.1
-        }}
-        aria-hidden
-      />
-      
-      {/* gradient overlay for depth - subtle and respects opacity */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background: "linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.4) 100%)",
-          opacity: opacityValue * 0.2
+          filter: "blur(12px) brightness(0.4)", // Reduced from 40px to 12px for performance
+          opacity: opacityValue * 0.15,
+          transform: 'translateZ(0)', // Force GPU layer
+          willChange: 'opacity, transform' // Hint to GPU
         }}
         aria-hidden
       />
 
-      {/* aurora effect - very subtle */}
+      {/* gradient overlay for depth */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: "linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.4) 100%)",
+          opacity: opacityValue * 0.3,
+          transform: 'translateZ(0)'
+        }}
+        aria-hidden
+      />
+
+      {/* aurora effect - optimized */}
       <div 
         className="absolute inset-0 bg-aurora animate-shimmer" 
-        style={{ opacity: opacityValue * 0.05 }}
+        style={{ 
+          opacity: opacityValue * 0.05, // Lower opacity for performance
+          transform: 'translateZ(0)'
+        }}
         aria-hidden 
       />
+
 
       {/* content - remains fully opaque */}
       <div

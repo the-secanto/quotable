@@ -8,8 +8,6 @@ import { initScheduler } from './scheduler/scheduler.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-app.disableHardwareAcceleration();
-
 let mainWindow = null;
 
 // Deep linking protocol
@@ -46,6 +44,7 @@ if (!gotTheLock) {
     createWindow();
     createTray(mainWindow);
     initScheduler();
+    mainWindow.webContents.openDevTools();
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {
