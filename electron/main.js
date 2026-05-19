@@ -8,6 +8,8 @@ import { initScheduler } from './scheduler/scheduler.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+app.disableHardwareAcceleration();
+
 let mainWindow = null;
 
 // Deep linking protocol

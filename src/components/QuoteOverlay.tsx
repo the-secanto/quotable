@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import desktopBg from "@/assets/desktop-bg.jpg";
+import desktopBg from "@/assets/desktop-bg2.jpg";
 import type { Quote } from "@/lib/store";
 import { useAppStore } from "@/lib/electronStore";
 
@@ -34,40 +34,39 @@ export function QuoteOverlay({
       className={`${embedded ? "absolute" : "fixed"} inset-0 overflow-hidden ${embedded ? "rounded-2xl" : ""} cursor-pointer flex items-center justify-center`}
       onClick={onDismiss}
     >
-      {/* background color layer - matches theme and handles opacity */}
+      {/* background color layer - semi-transparent black based on opacityValue */}
       <div
         className="absolute inset-0 transition-all duration-500"
         style={{ 
-          backgroundColor: 'var(--background)',
-          opacity: opacityValue
+          backgroundColor: `rgba(0,0,0,${opacityValue})`
         }}
       />
       
-      {/* background image layer - blended with theme color */}
+      {/* background image layer - blended and very faint to allow see-through */}
       <div
         className="absolute inset-0 bg-cover bg-center scale-110 transition-all duration-700"
         style={{ 
           backgroundImage: `url(${desktopBg})`, 
           filter: "blur(40px) brightness(0.5)",
-          opacity: opacityValue * 0.4 // Reduced to allow theme color and background below to show through
+          opacity: opacityValue * 0.1
         }}
         aria-hidden
       />
       
-      {/* gradient overlay for depth - also respects opacity */}
+      {/* gradient overlay for depth - subtle and respects opacity */}
       <div
         className="absolute inset-0"
         style={{
-          background: "linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.6) 100%)",
-          opacity: opacityValue * 0.5
+          background: "linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.4) 100%)",
+          opacity: opacityValue * 0.2
         }}
         aria-hidden
       />
 
-      {/* aurora effect */}
+      {/* aurora effect - very subtle */}
       <div 
         className="absolute inset-0 bg-aurora animate-shimmer" 
-        style={{ opacity: opacityValue * 0.2 }}
+        style={{ opacity: opacityValue * 0.05 }}
         aria-hidden 
       />
 

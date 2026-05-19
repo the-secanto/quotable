@@ -136,17 +136,27 @@ export const useAppStore = create<AppState>((set, get) => ({
   init: async () => {
     if (typeof window === 'undefined') return;
 
+    // Set a safety timeout to ensure the app eventually shows something
+    const timeout = setTimeout(() => {
+      if (!get().initialized) {
+        console.warn('Initialization timeout reached, forcing state to initialized');
+        set({ initialized: true });
+      }
+    }, 5000);
+
     const { user } = get();
     const userId = user?.id || null;
 
     // Electron path
     if (window.electron && window.electron.getQuotes) {
       try {
+        console.log('Initializing app state from Electron...');
         const [quotes, settings, rules] = await Promise.all([
           window.electron.getQuotes(userId),
           window.electron.getSettings(),
           window.electron.getRules(userId),
         ]);
+        
         const fullSettings = {
           ...get().settings,
           ...settings,
@@ -155,7 +165,10 @@ export const useAppStore = create<AppState>((set, get) => ({
             settings?.showAuthor === true ||
             settings?.showAuthor === undefined,
         };
-        set({ quotes, settings: fullSettings, rules, initialized: true });
+        
+        set({ quotes: quotes || [], settings: fullSettings, rules: rules || [], initialized: true });
+        clearTimeout(timeout);
+
         window.electron.onSettingUpdated?.(
           ({ key, value }: { key: string; value: any }) => {
             set({ settings: { ...get().settings, [key]: value.toString() } });
@@ -163,9 +176,12 @@ export const useAppStore = create<AppState>((set, get) => ({
         );
       } catch (e) {
         console.error('Electron init failed, falling back to local', e);
+        set({ initialized: true });
+        clearTimeout(timeout);
       }
     } else {
       // Browser fallback: localStorage
+      console.log('Initializing app state from LocalStorage...');
       const stored = loadFromStorage();
       if (stored) {
         set({
@@ -195,6 +211,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         set({ quotes: seed, initialized: true });
         saveToStorage({ quotes: seed, rules: [], settings: get().settings });
       }
+      clearTimeout(timeout);
     }
 
     setInterval(() => {
