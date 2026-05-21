@@ -80,7 +80,7 @@ function AuthPage() {
             <Sparkles className="h-4 w-4 text-primary-foreground" />
           </div>
           <div>
-            <div className="font-serif text-xl leading-none">Muse</div>
+            <div className="font-serif text-xl leading-none">Quotable</div>
             <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mt-1">
               {mode === "signin" ? "Welcome back" : "Create your account"}
             </div>
@@ -88,7 +88,7 @@ function AuthPage() {
         </div>
 
         <h1 className="font-serif text-3xl mb-2">
-          {mode === "signin" ? "Sign in to Muse" : "Join the community"}
+          {mode === "signin" ? "Sign in to Quotable" : "Join the community"}
         </h1>
         <p className="text-sm text-muted-foreground mb-8">
           {mode === "signin"
@@ -190,7 +190,7 @@ function AuthPage() {
 
         {!isSupabaseConfigured && (
           <p className="text-[11px] text-muted-foreground mt-4 text-center">
-            Cloud sync isn't configured in this build. You can still use Muse locally.
+            Cloud sync isn't configured in this build. You can still use Quotable locally.
           </p>
         )}
       </div>

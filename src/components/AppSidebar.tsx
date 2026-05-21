@@ -38,9 +38,9 @@ export function AppSidebar() {
           <Sparkles className="h-4 w-4 text-primary-foreground" />
         </div>
         <div>
-          <div className="font-serif text-lg leading-none">Muse</div>
-          <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground mt-1">
-            gentle reminders
+          <div className="font-serif text-lg leading-none">Quotable</div> 
+          <div className="text-[10px] text-muted-foreground mt-1">
+            Remember what matters
           </div>
         </div>
       </div>

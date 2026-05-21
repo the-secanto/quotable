@@ -35,7 +35,7 @@ function DashboardInner() {
         </p>
         <h1 className="font-serif text-4xl">Good to see you again.</h1>
         <p className="text-muted-foreground mt-2 max-w-lg">
-          Muse waits patiently in the background. When you return after a long break,
+          Quotable waits patiently in the background. When you return after a long break,
           it greets you with what matters.
         </p>
       </header>

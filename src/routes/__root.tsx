@@ -35,14 +35,17 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Muse — Gentle reminders for what matters" },
+      { title: "Quotable" },
       {
         name: "description",
         content:
-          "Muse shows you a beautiful, calm overlay with the quotes that matter to you, every time you return to your laptop.",
+          "Quotable shows you a beautiful, calm overlay with the quotes that matter to you, every time you return to your laptop.",
       },
     ],
-    links: [{ rel: "stylesheet", href: appCss }],
+    links: [
+      { rel: "stylesheet", href: appCss },
+      { rel: "icon", type: "image/png", href: "/src/assets/icon.png" },
+    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,
@@ -87,7 +90,25 @@ function SyncStatusBar() {
   }
 
   return (
-    <div className="h-9 shrink-0 border-b border-border bg-background/80 backdrop-blur flex items-center justify-between px-5 text-[11px]">
+    <div className="
+    fixed
+    top-0
+    left-0
+    right-0
+    z-50
+    h-9
+    shrink-0
+    border-b
+    border-border
+    bg-background/80
+    backdrop-blur
+    flex
+    items-center
+    justify-between
+    px-5
+    text-[11px]
+    [app-region:drag]
+  ">
       <div className={`flex items-center gap-1.5 ${tone}`}>
         {icon}
         <span className="tracking-wide">{label}</span>
@@ -119,7 +140,7 @@ function WebHandoff() {
   const handleOpenDesktop = () => {
     // We send the entire hash/search to the desktop app via the custom protocol
     const data = window.location.hash || window.location.search;
-    window.location.href = `muse-app://auth-callback${data}`;
+    window.location.href = `muse-app://auth-callback${data}`; //change this and figure out how itll work
     
     // Optional: close the window after a delay
     setTimeout(() => {
@@ -135,13 +156,13 @@ function WebHandoff() {
         </div>
         <h2 className="font-serif text-3xl mb-4">Account Verified</h2>
         <p className="text-muted-foreground text-sm mb-10 leading-relaxed">
-          Your email has been successfully confirmed. Click below to return to the Muse desktop application.
+          Your email has been successfully confirmed. Click below to return to Quotable desktop application.
         </p>
         <button
           onClick={handleOpenDesktop}
           className="w-full inline-flex items-center justify-center rounded-full bg-primary px-8 py-4 text-sm font-medium text-primary-foreground hover:opacity-90 transition shadow-glow active:scale-95"
         >
-          Open Muse App
+          Open Muse App // check this before change this
         </button>
         <div className="mt-8 pt-8 border-t border-border">
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-4">
@@ -225,7 +246,7 @@ function RootComponent() {
       window.electron.onNavigateTo((path: string) => {
         if (path.startsWith('muse-app://')) {
           // Handle Supabase deep link
-          const url = new URL(path.replace('muse-app://', 'https://placeholder.com/'));
+          const url = new URL(path.replace('muse-app://', 'https://placeholder.com/')); // change this
           const hash = url.hash;
           if (hash && hash.includes('access_token')) {
             // This is an implicit flow hash
@@ -260,7 +281,7 @@ function RootComponent() {
           <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-primary-glow grid place-items-center shadow-glow mb-8 animate-pulse">
             <Sparkles className="h-8 w-8 text-primary-foreground" />
           </div>
-          <h1 className="font-serif text-4xl mb-3 tracking-tight">Muse</h1>
+          <h1 className="font-serif text-4xl mb-3 tracking-tight">Quotable</h1>
           <p className="text-[10px] uppercase tracking-[0.4em] text-muted-foreground">
             Waking up...
           </p>
@@ -286,7 +307,7 @@ function RootComponent() {
   }
 
   return (
-    <div className="min-h-screen flex w-full bg-background text-foreground">
+    <div className="min-h-screen flex w-full bg-background text-foreground pt-9">
       <WebHandoff />
       <AppSidebar />
       <div className="flex-1 min-w-0 flex flex-col">

@@ -52,7 +52,7 @@ export type Settings = {
   updated_at?: string;
 };
 
-const STORAGE_KEY = 'muse_state_v1';
+const STORAGE_KEY = 'muse_state_v1'; // figure out what this is - change this
 
 function loadFromStorage() {
   if (typeof window === 'undefined') return null;
@@ -99,17 +99,51 @@ interface AppState {
   sync: () => Promise<void>;
 }
 
+/**
+ * APP DEFAULTS - Change these to test different initial states
+ */
+export const APP_DEFAULTS = {
+  SETTINGS: {
+    theme: 'dark' as ThemeId,
+    opacity: '0.0', // Changed to 0% as requested
+    fontSize: '48',
+    overlayDuration: '10',
+    inactivityHours: '6',
+    startupTrigger: '1',
+    wakeTrigger: '1',
+    launchAtStartup: '0',
+    minimizeToTray: '1',
+    showAuthor: true,
+  },
+  QUOTES: [
+    {
+      id: 'default-1',
+      text: "The mind is everything. What you think you become.",
+      author: "Buddha",
+      category: "Wisdom",
+      updated_at: new Date().toISOString(),
+    },
+    {
+      id: 'default-2',
+      text: "Discipline equals freedom.",
+      author: "Jocko Willink",
+      category: "Discipline",
+      updated_at: new Date().toISOString(),
+    }
+  ]
+};
+
 const defaultSettings: Settings = {
-  theme: 'dark',
-  opacity: '0.9',
-  fontSize: '48',
-  overlayDuration: '10',
-  inactivityHours: '6',
-  startupTrigger: '1',
-  wakeTrigger: '1',
-  launchAtStartup: '0',
-  minimizeToTray: '1',
-  showAuthor: true,
+  theme: APP_DEFAULTS.SETTINGS.theme,
+  opacity: APP_DEFAULTS.SETTINGS.opacity,
+  fontSize: APP_DEFAULTS.SETTINGS.fontSize,
+  overlayDuration: APP_DEFAULTS.SETTINGS.overlayDuration,
+  inactivityHours: APP_DEFAULTS.SETTINGS.inactivityHours,
+  startupTrigger: APP_DEFAULTS.SETTINGS.startupTrigger,
+  wakeTrigger: APP_DEFAULTS.SETTINGS.wakeTrigger,
+  launchAtStartup: APP_DEFAULTS.SETTINGS.launchAtStartup,
+  minimizeToTray: APP_DEFAULTS.SETTINGS.minimizeToTray,
+  showAuthor: APP_DEFAULTS.SETTINGS.showAuthor,
 };
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -191,23 +225,8 @@ export const useAppStore = create<AppState>((set, get) => ({
           initialized: true,
         });
       } else {
-        // Seed with a couple of example quotes
-        const seed: Quote[] = [
-          {
-            id: crypto.randomUUID(),
-            text: 'The mind is everything. What you think you become.',
-            author: 'Buddha',
-            category: 'Wisdom',
-            updated_at: new Date().toISOString(),
-          },
-          {
-            id: crypto.randomUUID(),
-            text: 'Discipline equals freedom.',
-            author: 'Jocko Willink',
-            category: 'Discipline',
-            updated_at: new Date().toISOString(),
-          },
-        ];
+        // Seed with example quotes from defaults
+        const seed = APP_DEFAULTS.QUOTES;
         set({ quotes: seed, initialized: true });
         saveToStorage({ quotes: seed, rules: [], settings: get().settings });
       }

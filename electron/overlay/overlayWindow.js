@@ -14,31 +14,26 @@ export function createOverlayWindow() {
   const { width, height } = screen.getPrimaryDisplay().bounds;
 
   overlayWin = new BrowserWindow({
-  width,
-  height,
-  x: 0,
-  y: 0,
-
-  frame: false,
-  transparent: true,
-  backgroundColor: '#00000000',
-
-  fullscreen: false,
-
-  resizable: false,
-  movable: false,
-  skipTaskbar: true,
-  alwaysOnTop: true,
-
-  hasShadow: false,
-  thickFrame: false,
-
-  webPreferences: {
-    nodeIntegration: false,
-    contextIsolation: true,
-    preload: path.join(__dirname, '../preload.cjs'),
-  },
-});
+    width,
+    height,
+    x: 0,
+    y: 0,
+    show: false,
+    frame: false,
+    transparent: true,
+    backgroundColor: '#00000000',
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    fullscreen: true,
+    resizable: false,
+    movable: false,
+    webPreferences: {
+      devTools: false,
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: path.join(__dirname, '../preload.cjs'),
+    },
+  });
 
   // Set as top-level window for all workspaces on macOS
   if (process.platform === 'darwin') {

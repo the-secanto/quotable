@@ -31,7 +31,7 @@ function SettingsPage() {
         <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground mb-3">
           Settings
         </p>
-        <h1 className="font-serif text-4xl">How Muse behaves</h1>
+        <h1 className="font-serif text-4xl">Quotable's behaviour</h1>
       </header>
 
       <section className="glass rounded-2xl p-6 mb-8">

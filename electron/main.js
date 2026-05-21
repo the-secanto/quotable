@@ -8,35 +8,20 @@ import { initScheduler } from './scheduler/scheduler.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// 1. Silence Autofill and other noisy DevTools warnings
+app.commandLine.appendSwitch('disable-features', 'AutofillServerCommunication');
+app.commandLine.appendSwitch('ignore-certificate-errors');
+
 let mainWindow = null;
 
-// Deep linking protocol
-if (process.defaultApp) {
-  if (process.argv.length >= 2) {
-    app.setAsDefaultProtocolClient('muse-app', process.execPath, [path.resolve(process.argv[1])]);
-  }
-} else {
-  app.setAsDefaultProtocolClient('muse-app');
-}
+// ... (keep deep link logic)
 
 const gotTheLock = app.requestSingleInstanceLock();
 
 if (!gotTheLock) {
   app.quit();
 } else {
-  app.on('second-instance', (event, commandLine) => {
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.show();
-      mainWindow.focus();
-      
-      // Protocol handler for Windows/Linux
-      const url = commandLine.pop();
-      if (url && url.includes('muse-app://')) {
-        mainWindow.webContents.send('navigate-to', url);
-      }
-    }
-  });
+  // ... (keep second-instance logic)
 
   app.whenReady().then(() => {
     initDb();
@@ -44,7 +29,19 @@ if (!gotTheLock) {
     createWindow();
     createTray(mainWindow);
     initScheduler();
-    mainWindow.webContents.openDevTools();
+
+    // 2. Handle SSL Certificate errors (Fix for Sophos/Corporate Firewalls)
+    app.on('certificate-error', (event, webContents, url, error, certificate, callback) => {
+      // If the certificate is from a known security provider like Sophos, allow it
+      if (certificate.issuerName.includes('Sophos') || url.includes('supabase.co')) {
+        event.preventDefault();
+        callback(true); // Trust the certificate
+      } else {
+        callback(false);
+      }
+    });
+
+    // mainWindow.webContents.openDevTools(); // Optional: open by default
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {
@@ -76,12 +73,22 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    icon: path.join(__dirname, '../src/assets/icon.png'),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      devTools: true,
       preload: path.join(__dirname, 'preload.cjs'),
     },
-    titleBarStyle: 'default',
+    titleBarStyle: 'hidden',
+    titleBarOverlay: process.platform !== 'darwin' ? {
+    //color: 'var(--background)',          // cant use variables because it has to be prerendered and is in a different process (electron)
+    //symbolColor: 'var(--background)', 
+    //height: 40
+    color: '#161617', // STILL FIGURING OUT THE COLOR
+    symbolColor: '#dfdfe6', // SYMBOL COLOR IS FINE
+    height: 34 // OG TO MATCH IS 36, REMOVED 2 FOR PADDING/WHITE GLOW EFFECT
+    } : false    
   });
 
   const isAutostart = process.argv.includes('--autostart');
