@@ -1,12 +1,13 @@
 {
   "name": "quotable",
+  "version": "1.0.0",
+  "description": "Overlay application",
   "productName": "Quotable",
   "author": "Emmanuel Sipeolu",
   "private": true,
   "sideEffects": false,
   "type": "module",
   "main": "electron/main.js",
-
   "scripts": {
     "dev": "vite dev",
     "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:8080 && electron .\"",
@@ -18,34 +19,32 @@
     "lint": "eslint .",
     "format": "prettier --write ."
   },
-
-  "build": { 
-    "appId": "com.quotable.app", 
+  "build": {
+    "appId": "com.quotable.app",
     "directories": {
-      "output": "dist_electron" 
+      "output": "dist_electron"
     },
     "files": [
       "dist/**/*",
       "electron/**/*",
-      "src/assets/**/*",
       "package.json"
-   ],
-   "win": {
-    "target": "nsis",
-    "icon": "src/assets/icon.ico"
-   },
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "src/assets/icon.ico"
+    },
     "nsis": {
-      "oneClick": true,
+      "oneClick": false,
       "installerIcon": "src/assets/icon.ico",
       "uninstallerIcon": "src/assets/icon.ico",
-      "uninstallDisplayName": "quotable-uninstaller",
+      "uninstallDisplayName": "Quotable",
       "license": "license.md",
       "allowToChangeInstallationDirectory": true
     }
-   },
-  
+  },
   "dependencies": {
-    "@cloudflare/vite-plugin": "^1.25.5",
+    "@fontsource/afacad": "^5.2.10",
+    "@fontsource/inter": "^5.2.8",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-aspect-ratio": "^1.1.8",
@@ -75,7 +74,6 @@
     "@supabase/supabase-js": "^2.105.4",
     "@tailwindcss/vite": "^4.2.1",
     "@tanstack/react-router": "^1.168.0",
-    "@tanstack/react-start": "^1.167.14",
     "better-sqlite3": "^12.10.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -98,15 +96,14 @@
     "zustand": "^5.0.13"
   },
   "devDependencies": {
-    "@electron/rebuild": "^4.0.4",
     "@eslint/js": "^9.32.0",
-    "@lovable.dev/vite-tanstack-config": "^1.4.0",
     "@types/node": "^22.16.5",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.0.4",
     "concurrently": "^9.2.1",
     "electron": "^31.0.0",
+    "electron-builder": "^26.8.1",
     "eslint": "^9.32.0",
     "eslint-config-prettier": "^10.1.1",
     "eslint-plugin-prettier": "^5.2.6",

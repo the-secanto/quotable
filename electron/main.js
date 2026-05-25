@@ -68,7 +68,6 @@ app.on('open-url', (event, url) => {
 });
 
 function createWindow() {
-  const isDev = !app.isPackaged;
   
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -91,12 +90,15 @@ function createWindow() {
     } : false    
   });
 
+
   const isAutostart = process.argv.includes('--autostart');
   
+  const isDev = !app.isPackaged;
+
   if (isDev) {
     mainWindow.loadURL('http://localhost:8080');
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+    mainWindow.loadFile(path.join(__dirname, '../dist/client/index.html'), { hash: '/' });
   }
 
   if (!isAutostart) {

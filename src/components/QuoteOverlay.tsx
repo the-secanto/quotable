@@ -49,18 +49,15 @@ export function QuoteOverlay({
       <div
         className="absolute inset-0 transition-all duration-500"
         style={{ 
-          backgroundColor: `color-mix(in oklab, var(--background) ${displayOpacity * 80}%, transparent)`,
+          backgroundColor: `color-mix(in oklab, var(--background) ${displayOpacity * 100}%, transparent)`,
           transform: 'translateZ(0)',
-          backdropFilter: 'blur(120px) saturate(150%)',
-          WebkitBackdropFilter: 'blur(120px) saturate(150%)',
+         // backdropFilter dosent work here
         }}
       />
       <div
         className="absolute inset-0"
         style={{ 
-          backgroundColor: `color-mix(in oklab, var(--background) ${displayOpacity * 20}%, transparent)`,
-          backdropFilter: 'blur(40px)',
-          WebkitBackdropFilter: 'blur(40px)',
+          backgroundColor: `color-mix(in oklab, var(--background) ${displayOpacity * 30}%, transparent)`
         }}
       />
       
@@ -70,6 +67,7 @@ export function QuoteOverlay({
       */}
       <div
         className="absolute inset-0"
+        // gradient 
         style={{
           background: "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.3) 100%)",
           opacity: 1,
@@ -79,11 +77,12 @@ export function QuoteOverlay({
       />
 
       {/* aurora effect - extremely low opacity and NO SHIMMER to save memory/render time */}
+      {/* basically the shiny blue effect (middle top down) thats all */}
       {!embedded && (
         <div 
           className="absolute inset-0 bg-aurora" 
           style={{ 
-            opacity: 0.3,
+            opacity: 0.4,
             transform: 'translateZ(0)'
           }}
           aria-hidden 

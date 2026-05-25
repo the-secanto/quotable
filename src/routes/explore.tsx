@@ -122,6 +122,14 @@ function ExplorePage() {
   };
 
   const handleAddToLibrary = async (quote: any) => {
+    const { quotes: localQuotes } = useAppStore.getState();
+    const isDuplicate = localQuotes.some(q => q.text === quote.text && q.author === quote.author);
+    
+    if (isDuplicate) {
+      alert("This quote is already in your library!");
+      return;
+    }
+
     await addQuote({
       text: quote.text,
       author: quote.author,
@@ -136,6 +144,8 @@ function ExplorePage() {
     q.text.toLowerCase().includes(search.toLowerCase()) || 
     q.author.toLowerCase().includes(search.toLowerCase())
   );
+
+  const localQuotes = useAppStore(s => s.quotes);
 
   if (!user) {
     return (

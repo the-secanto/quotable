@@ -1,4 +1,4 @@
-import { Outlet, Link, createRootRoute, HeadContent, Scripts, useRouterState, useNavigate } from "@tanstack/react-router";
+import { Outlet, Link, createRootRoute, useRouterState, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Cloud, CloudOff, Loader2, CheckCircle2, Sparkles } from "lucide-react";
 import appCss from "../styles.css?url";
@@ -31,40 +31,9 @@ function NotFoundComponent() {
 }
 
 export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Quotable" },
-      {
-        name: "description",
-        content:
-          "Quotable shows you a beautiful, calm overlay with the quotes that matter to you, every time you return to your laptop.",
-      },
-    ],
-    links: [
-      { rel: "stylesheet", href: appCss },
-      { rel: "icon", type: "image/png", href: "/src/assets/icon.png" },
-    ],
-  }),
-  shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
 });
-
-function RootShell({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  );
-}
 
 function SyncStatusBar() {
   const { user, syncing, lastSynced } = useAppStore();
@@ -140,7 +109,7 @@ function WebHandoff() {
   const handleOpenDesktop = () => {
     // We send the entire hash/search to the desktop app via the custom protocol
     const data = window.location.hash || window.location.search;
-    window.location.href = `muse-app://auth-callback${data}`; //change this and figure out how itll work
+    window.location.href = `quotable-app://auth-callback${data}`;
     
     // Optional: close the window after a delay
     setTimeout(() => {
@@ -162,7 +131,7 @@ function WebHandoff() {
           onClick={handleOpenDesktop}
           className="w-full inline-flex items-center justify-center rounded-full bg-primary px-8 py-4 text-sm font-medium text-primary-foreground hover:opacity-90 transition shadow-glow active:scale-95"
         >
-          Open Muse App // check this before change this
+          Open Quotable App
         </button>
         <div className="mt-8 pt-8 border-t border-border">
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-4">
@@ -244,9 +213,9 @@ function RootComponent() {
 
     if (window.electron && window.electron.onNavigateTo) {
       window.electron.onNavigateTo((path: string) => {
-        if (path.startsWith('muse-app://')) {
+        if (path.startsWith('quotable-app://')) {
           // Handle Supabase deep link
-          const url = new URL(path.replace('muse-app://', 'https://placeholder.com/')); // change this
+          const url = new URL(path.replace('quotable-app://', 'https://placeholder.com/')); 
           const hash = url.hash;
           if (hash && hash.includes('access_token')) {
             // This is an implicit flow hash
@@ -296,7 +265,11 @@ function RootComponent() {
   }
 
   // /preview and /auth render fullscreen without chrome
-  if (pathname === "/preview" || pathname === "/auth") {
+  // We check if it ends with the route name to handle hash routing (e.g., #/preview)
+  const isPreview = pathname === "/preview" || pathname.endsWith("/preview");
+  const isAuth = pathname === "/auth" || pathname.endsWith("/auth");
+
+  if (isPreview || isAuth) {
     return (
       <>
         <WebHandoff />

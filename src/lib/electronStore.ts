@@ -52,7 +52,7 @@ export type Settings = {
   updated_at?: string;
 };
 
-const STORAGE_KEY = 'muse_state_v1'; // figure out what this is - change this
+const STORAGE_KEY = 'quotable_state_v1';
 
 function loadFromStorage() {
   if (typeof window === 'undefined') return null;
@@ -235,13 +235,27 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     setInterval(() => {
       get().sync();
-    }, 1000 * 60 * 5);
+    }, 1000 * 60 * 10);
   },
 
   addQuote: async (quote) => {
     const id = crypto.randomUUID();
-    const user_id = get().user?.id;
-    const newQuote = { ...quote, id, user_id, updated_at: new Date().toISOString() };
+    const user = get().user;
+    const user_id = user?.id;
+    
+    // If quote is public, enforce username as author
+    const finalAuthor = quote.is_public && user?.user_metadata?.username 
+      ? user.user_metadata.username 
+      : quote.author;
+
+    const newQuote = { 
+      ...quote, 
+      id, 
+      user_id, 
+      author: finalAuthor,
+      updated_at: new Date().toISOString() 
+    };
+    
     await window.electron?.addQuote?.(newQuote);
     const next = [newQuote, ...get().quotes];
     set({ quotes: next });
@@ -251,8 +265,16 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   updateQuote: async (id, patch) => {
     const updated_at = new Date().toISOString();
-    await window.electron?.updateQuote?.(id, { ...patch, updated_at });
-    const next = get().quotes.map((q) => (q.id === id ? { ...q, ...patch, updated_at } : q));
+    const user = get().user;
+    
+    // If becoming public or is public, enforce username as author
+    let finalPatch = { ...patch, updated_at };
+    if ((patch.is_public || get().quotes.find(q => q.id === id)?.is_public) && user?.user_metadata?.username) {
+      finalPatch.author = user.user_metadata.username;
+    }
+
+    await window.electron?.updateQuote?.(id, finalPatch);
+    const next = get().quotes.map((q) => (q.id === id ? { ...q, ...finalPatch } : q));
     set({ quotes: next });
     saveToStorage({ quotes: next, rules: get().rules, settings: get().settings });
     get().sync();
@@ -264,7 +286,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ quotes: next });
     saveToStorage({ quotes: next, rules: get().rules, settings: get().settings });
     if (isSupabaseConfigured && get().user) {
-      await supabase!.from('quotes').delete().eq('id', id);
+      await Promise.all([
+        supabase!.from('quotes').delete().eq('id', id),
+        supabase!.from('public_quotes').delete().eq('id', id),
+      ]);
     }
   },
 
@@ -327,23 +352,84 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ syncing: true });
     try {
       const { quotes: localQuotes } = get();
+      
+      // 1. Fetch private quotes
       const { data: remoteQuotes, error: qError } = await supabase!
         .from('quotes')
         .select('*')
         .eq('user_id', user.id);
 
+      // 2. Fetch public quotes with their like counts to update local display
+      const { data: publicStats } = await supabase!
+        .from('public_quotes')
+        .select('id, favorites(count)');
+
+      const likesMap: Record<string, number> = {};
+      publicStats?.forEach(ps => {
+        likesMap[ps.id] = (ps.favorites as any)?.[0]?.count || 0;
+      });
+
       if (!qError && remoteQuotes) {
         for (const remote of remoteQuotes) {
           const local = localQuotes.find((l) => l.id === remote.id);
-          if (!local || new Date(remote.updated_at) > new Date(local.updated_at || 0)) {
-            await window.electron?.addQuote?.({ ...remote, synced: true });
+          const likes_count = likesMap[remote.id] || 0;
+
+          if (!local || new Date(remote.updated_at) > new Date(local.updated_at || 0) || local.likes_count !== likes_count) {
+            // Update local DB with remote changes + latest like counts
+            const updatedLocal = { ...remote, likes_count, synced: true };
+            await window.electron?.addQuote?.(updatedLocal);
           } else if (new Date(local.updated_at || 0) > new Date(remote.updated_at)) {
-            await supabase!.from('quotes').upsert([{ ...local, user_id: user.id, synced: true }]);
+            // Push local changes to remote... (rest of logic remains)
+
+            // Push local changes to remote
+            const syncable = {
+              id: local.id,
+              text: local.text,
+              author: local.author,
+              category: local.category,
+              user_id: user.id,
+              is_public: local.is_public ? true : false,
+              updated_at: local.updated_at
+            };
+            await supabase!.from('quotes').upsert([syncable]);
+            
+            // If public, also sync to public_quotes
+            if (local.is_public) {
+              const publicQuote = {
+                id: local.id,
+                text: local.text,
+                author: local.author,
+                category: local.category,
+                user_id: user.id
+              };
+              await supabase!.from('public_quotes').upsert([publicQuote]);
+            }
           }
         }
         for (const local of localQuotes) {
           if (!remoteQuotes.find((r) => r.id === local.id)) {
-            await supabase!.from('quotes').upsert([{ ...local, user_id: user.id, synced: true }]);
+            const syncable = {
+              id: local.id,
+              text: local.text,
+              author: local.author,
+              category: local.category,
+              user_id: user.id,
+              is_public: local.is_public ? true : false,
+              updated_at: local.updated_at
+            };
+            await supabase!.from('quotes').upsert([syncable]);
+
+            // If public, also sync to public_quotes
+            if (local.is_public) {
+              const publicQuote = {
+                id: local.id,
+                text: local.text,
+                author: local.author,
+                category: local.category,
+                user_id: user.id
+              };
+              await supabase!.from('public_quotes').upsert([publicQuote]);
+            }
           }
         }
       }

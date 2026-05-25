@@ -47,7 +47,7 @@ export function createOverlayWindow() {
   if (isDev) {
     overlayWin.loadURL('http://localhost:8080/preview'); 
   } else {
-    overlayWin.loadFile(path.join(__dirname, '../../dist/index.html'), { hash: '/preview' });
+    overlayWin.loadFile(path.join(__dirname, '../../dist/client/index.html'), { hash: '/preview' });
   }
 
   overlayWin.once('ready-to-show', () => {

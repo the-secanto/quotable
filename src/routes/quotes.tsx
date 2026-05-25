@@ -45,19 +45,26 @@ function QuotesPage() {
     try {
       const isCurrentlyPublic = !!quote.is_public;
       const nextPublicState = !isCurrentlyPublic;
+      const username = user.user_metadata?.username;
 
       if (nextPublicState) {
+        // Enforce username for public quotes
+        const finalAuthor = username || quote.author;
+        
         const { error } = await supabase!
           .from('public_quotes')
           .upsert([{ 
-            id: quote.id, // Use same ID for sync
+            id: quote.id, 
             text: quote.text, 
-            author: quote.author, 
+            author: finalAuthor, 
             category: quote.category,
             user_id: user.id
           }]);
         
         if (error) throw error;
+        
+        // Update local state too
+        updateQuote(quote.id, { is_public: true, author: finalAuthor });
         alert("Quote shared successfully to the community!");
       } else {
         const { error } = await supabase!
@@ -66,10 +73,9 @@ function QuotesPage() {
           .eq('id', quote.id);
         
         if (error) throw error;
+        updateQuote(quote.id, { is_public: false });
         alert("Quote removed from community.");
       }
-      
-      updateQuote(quote.id, { is_public: nextPublicState });
     } catch (e: any) {
       alert("Error updating sharing status: " + e.message);
     }
