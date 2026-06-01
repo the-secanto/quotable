@@ -45,7 +45,7 @@ export function createOverlayWindow() {
 
   const isDev = !app.isPackaged;
   if (isDev) {
-    overlayWin.loadURL('http://localhost:8080/preview'); 
+    overlayWin.loadURL('http://localhost:5173/preview'); 
   } else {
     overlayWin.loadFile(path.join(__dirname, '../../dist/client/index.html'), { hash: '/preview' });
   }

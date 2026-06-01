@@ -122,6 +122,11 @@ function ExplorePage() {
   };
 
   const handleAddToLibrary = async (quote: any) => {
+    if (user && quote.user_id === user.id) {
+      alert("You cannot add your own quote to your library as a copy.");
+      return;
+    }
+
     const { quotes: localQuotes } = useAppStore.getState();
     const isDuplicate = localQuotes.some(q => q.text === quote.text && q.author === quote.author);
     

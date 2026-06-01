@@ -152,6 +152,7 @@ function QuotesPage() {
             </div>
             
             <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition bg-background/80 backdrop-blur-sm p-1 rounded-lg">
+              {/* 
               <button
                 onClick={() => handleShare(q)}
                 className={`p-2 rounded-md transition ${q.is_public ? 'text-emerald-500 hover:bg-emerald-500/10' : 'text-muted-foreground hover:bg-accent'}`}
@@ -160,6 +161,7 @@ function QuotesPage() {
               >
                 <Share2 className="h-3.5 w-3.5" />
               </button>
+              */}
               <button
                 onClick={() => {
                   setEditing(q);
