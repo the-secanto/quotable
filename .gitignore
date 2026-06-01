@@ -39,6 +39,6 @@ dist-ssr
 *.md
 *.txt
 !README.md
-
+!license.md
 docs
 /docs
