@@ -140,7 +140,8 @@ export function registerHandlers() {
         app.setLoginItemSettings({
           openAtLogin: openAtLogin,
           path: app.getPath('exe'),
-          args: ['--autostart']
+          args: ['--autostart'],
+          appUserModelId: 'com.quotable.app' // Add this to help Windows identify the app correctly
         });
       }
 
