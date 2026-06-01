@@ -16,6 +16,8 @@ contextBridge.exposeInMainWorld('electron', {
   closeOverlay: () => ipcRenderer.invoke('close-overlay'),
   exportQuotes: () => ipcRenderer.invoke('export-quotes'),
   importQuotes: () => ipcRenderer.invoke('import-quotes'),
+  getDeletedRecords: () => ipcRenderer.invoke('get-deleted-records'),
+  removeDeletedRecord: (id) => ipcRenderer.invoke('remove-deleted-record', id),
   onDisplayQuote: (callback) => ipcRenderer.on('display-quote', (_event, value) => callback(value)),
   onNavigateTo: (callback) => ipcRenderer.on('navigate-to', (_event, value) => callback(value)),
   onSettingUpdated: (callback) => ipcRenderer.on('setting-updated', (_event, value) => callback(value)),

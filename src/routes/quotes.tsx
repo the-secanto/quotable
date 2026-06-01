@@ -247,6 +247,7 @@ function QuoteModal({
               Quote
             </label>
             <textarea
+              autoFocus
               value={text}
               onChange={(e) => setText(e.target.value)}
               rows={4}

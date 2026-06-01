@@ -72,6 +72,12 @@ export function initDb() {
       value TEXT,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS deleted_records (
+      id TEXT PRIMARY KEY,
+      table_name TEXT NOT NULL,
+      deleted_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 
   // Migration: Add updated_at to settings if it doesn't exist

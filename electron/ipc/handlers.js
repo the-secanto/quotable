@@ -88,9 +88,30 @@ export function registerHandlers() {
   ipcMain.handle('delete-quote', async (event, id) => {
     try {
       db.prepare('DELETE FROM quotes WHERE id = ?').run(id);
+      // Track deletion for sync
+      db.prepare('INSERT OR REPLACE INTO deleted_records (id, table_name) VALUES (?, ?)').run(id, 'quotes');
       return { success: true };
     } catch (error) {
       console.error('IPC: delete-quote error:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('get-deleted-records', async () => {
+    try {
+      return db.prepare('SELECT * FROM deleted_records').all();
+    } catch (error) {
+      console.error('IPC: get-deleted-records error:', error);
+      return [];
+    }
+  });
+
+  ipcMain.handle('remove-deleted-record', async (event, id) => {
+    try {
+      db.prepare('DELETE FROM deleted_records WHERE id = ?').run(id);
+      return { success: true };
+    } catch (error) {
+      console.error('IPC: remove-deleted-record error:', error);
       return { success: false, error: error.message };
     }
   });

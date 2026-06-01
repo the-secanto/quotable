@@ -80,6 +80,7 @@ interface AppState {
   syncing: boolean;
   lastSynced: Date | null;
   overlayOpen: boolean;
+  deletedIds: Set<string>;
 
   init: () => Promise<void>;
   setUser: (user: any) => void;
@@ -155,6 +156,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   syncing: false,
   lastSynced: null,
   overlayOpen: false,
+  deletedIds: new Set<string>(),
 
   setUser: (user) => {
     set({ user });
@@ -237,6 +239,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       get().sync();
     }, 1000 * 60 * 10);
   },
+  // SYNC INTERVAL IS 10 MINUTES
 
   addQuote: async (quote) => {
     const id = crypto.randomUUID();
@@ -281,15 +284,27 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   deleteQuote: async (id) => {
+    // Track deleted ID to prevent sync-back in this session
+    const { deletedIds } = get();
+    deletedIds.add(id);
+    set({ deletedIds: new Set(deletedIds) });
+
     await window.electron?.deleteQuote?.(id);
     const next = get().quotes.filter((q) => q.id !== id);
     set({ quotes: next });
     saveToStorage({ quotes: next, rules: get().rules, settings: get().settings });
+    
     if (isSupabaseConfigured && get().user) {
-      await Promise.all([
-        supabase!.from('quotes').delete().eq('id', id),
-        supabase!.from('public_quotes').delete().eq('id', id),
-      ]);
+      try {
+        const [qRes, pRes] = await Promise.all([
+          supabase!.from('quotes').delete().eq('id', id),
+          supabase!.from('public_quotes').delete().eq('id', id),
+        ]);
+        if (qRes.error) console.error('Supabase private quote delete error:', qRes.error);
+        if (pRes.error) console.error('Supabase public quote delete error:', pRes.error);
+      } catch (e) {
+        console.error('Supabase delete failed:', e);
+      }
     }
   },
 
@@ -353,13 +368,29 @@ export const useAppStore = create<AppState>((set, get) => ({
     try {
       const { quotes: localQuotes } = get();
       
-      // 1. Fetch private quotes
+      // 1. Handle pending local deletions (Retry deletions that failed previously)
+      if (window.electron?.getDeletedRecords) {
+        const deletedRecords = await window.electron.getDeletedRecords();
+        for (const record of deletedRecords) {
+          if (record.table_name === 'quotes') {
+            const [qRes, pRes] = await Promise.all([
+              supabase!.from('quotes').delete().eq('id', record.id),
+              supabase!.from('public_quotes').delete().eq('id', record.id),
+            ]);
+            if (!qRes.error && !pRes.error) {
+              await window.electron.removeDeletedRecord(record.id);
+            }
+          }
+        }
+      }
+
+      // 2. Fetch private quotes from remote
       const { data: remoteQuotes, error: qError } = await supabase!
         .from('quotes')
         .select('*')
         .eq('user_id', user.id);
 
-      // 2. Fetch public quotes with their like counts to update local display
+      // 3. Fetch public quotes with their like counts to update local display
       const { data: publicStats } = await supabase!
         .from('public_quotes')
         .select('id, favorites(count)');
@@ -370,7 +401,11 @@ export const useAppStore = create<AppState>((set, get) => ({
       });
 
       if (!qError && remoteQuotes) {
+        // A. Handle remote quotes (Updates and Downloads)
         for (const remote of remoteQuotes) {
+          // Skip if we just deleted this in this session
+          if (get().deletedIds.has(remote.id)) continue;
+
           const local = localQuotes.find((l) => l.id === remote.id);
           const likes_count = likesMap[remote.id] || 0;
 
@@ -379,8 +414,6 @@ export const useAppStore = create<AppState>((set, get) => ({
             const updatedLocal = { ...remote, likes_count, synced: true };
             await window.electron?.addQuote?.(updatedLocal);
           } else if (new Date(local.updated_at || 0) > new Date(remote.updated_at)) {
-            // Push local changes to remote... (rest of logic remains)
-
             // Push local changes to remote
             const syncable = {
               id: local.id,
@@ -406,32 +439,55 @@ export const useAppStore = create<AppState>((set, get) => ({
             }
           }
         }
-        for (const local of localQuotes) {
-          if (!remoteQuotes.find((r) => r.id === local.id)) {
-            const syncable = {
-              id: local.id,
-              text: local.text,
-              author: local.author,
-              category: local.category,
-              user_id: user.id,
-              is_public: local.is_public ? true : false,
-              updated_at: local.updated_at
-            };
-            await supabase!.from('quotes').upsert([syncable]);
 
-            // If public, also sync to public_quotes
-            if (local.is_public) {
-              const publicQuote = {
+        // B. Handle local-only quotes (Propagated deletions OR new uploads)
+        for (const local of localQuotes) {
+          const remote = remoteQuotes.find((r) => r.id === local.id);
+          if (!remote) {
+            // Case 1: Was it deleted on the server by another device?
+            // If local is marked as synced, but missing from remote, it was deleted elsewhere.
+            if (local.synced) {
+              await window.electron?.deleteQuote?.(local.id);
+              // We also remove it from the session's deletedIds so we don't track it twice
+              get().deletedIds.delete(local.id);
+            } 
+            // Case 2: Is it a new quote that hasn't been uploaded yet?
+            else {
+              const syncable = {
                 id: local.id,
                 text: local.text,
                 author: local.author,
                 category: local.category,
-                user_id: user.id
+                user_id: user.id,
+                is_public: local.is_public ? true : false,
+                updated_at: local.updated_at
               };
-              await supabase!.from('public_quotes').upsert([publicQuote]);
+              const { error } = await supabase!.from('quotes').upsert([syncable]);
+              
+              if (!error) {
+                // Mark as synced locally
+                await window.electron?.updateQuote?.(local.id, { synced: 1 });
+                
+                // If public, also sync to public_quotes
+                if (local.is_public) {
+                  const publicQuote = {
+                    id: local.id,
+                    text: local.text,
+                    author: local.author,
+                    category: local.category,
+                    user_id: user.id
+                  };
+                  await supabase!.from('public_quotes').upsert([publicQuote]);
+                }
+              }
             }
           }
         }
+        
+        // Final UI refresh from DB to ensure state is perfectly in sync
+        const userId = user.id;
+        const refreshedQuotes = await window.electron.getQuotes(userId);
+        set({ quotes: refreshedQuotes || [] });
       }
 
       set({ lastSynced: new Date() });

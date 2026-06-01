@@ -10,7 +10,7 @@
   "main": "electron/main.js",
   "scripts": {
     "dev": "vite dev",
-    "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:8080 && electron .\"",
+    "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
     "build": "vite build",
     "package": "npm run build && electron-builder",
     "build:dev": "vite build --mode development",
@@ -104,6 +104,7 @@
     "concurrently": "^9.2.1",
     "electron": "^31.0.0",
     "electron-builder": "^26.8.1",
+    "electron-rebuild": "^3.2.9",
     "eslint": "^9.32.0",
     "eslint-config-prettier": "^10.1.1",
     "eslint-plugin-prettier": "^5.2.6",
@@ -113,6 +114,7 @@
     "prettier": "^3.7.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
-    "vite": "^7.3.1"
+    "vite": "^7.3.1",
+    "wait-on": "^9.0.10"
   }
 }
