@@ -12,7 +12,7 @@ export function createTray(mainWindow) {
   // Use a placeholder icon if one doesn't exist yet
   // In a real app, you'd have an icon file.
   // For now, I'll use a simple nativeImage if I can't find one.
-  const iconPath = path.join(__dirname, '../../src/assets/icon.png');
+  const iconPath = path.join(__dirname, '../../src/assets/quotable_logo.png');
   // const icon = nativeImage.createEmpty(); // Fallback
   const icon = nativeImage.createFromPath(iconPath).resize({ width: 128, height: 128 })
   tray = new Tray(icon);

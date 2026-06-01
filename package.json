@@ -31,12 +31,12 @@
     ],
     "win": {
       "target": "nsis",
-      "icon": "src/assets/icon.ico"
+      "icon": "src/assets/quotable_logo.ico"
     },
     "nsis": {
       "oneClick": false,
-      "installerIcon": "src/assets/icon.ico",
-      "uninstallerIcon": "src/assets/icon.ico",
+      "installerIcon": "src/assets/quotable_logo.ico",
+      "uninstallerIcon": "src/assets/quotable_logo.ico",
       "uninstallDisplayName": "Quotable",
       "license": "license.md",
       "allowToChangeInstallationDirectory": true

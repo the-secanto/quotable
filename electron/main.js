@@ -72,7 +72,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    icon: path.join(__dirname, '../src/assets/icon.png'),
+    icon: path.join(__dirname, '../src/assets/quotable_logo.png'),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
