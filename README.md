@@ -2,6 +2,8 @@
 
 **Quotable** is a sophisticated, event-driven desktop application designed to provide "gentle reminders" and mindful inspiration during key transitional moments. Built with Electron and React, it delivers stunning, full-screen overlays triggered by system events like startup, wake-from-sleep, or user inactivity.
 
+🔗 **Visit the Website:** https://quotable-s1q8.onrender.com/
+
 ---
 
 ## ✨ Features
