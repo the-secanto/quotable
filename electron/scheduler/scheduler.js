@@ -4,6 +4,7 @@ import { showOverlay } from '../overlay/overlayWindow.js';
 
 let lastIdleState = false;
 let lastCheckTime = Date.now();
+let lastSuspendTime = null;
 
 export function initScheduler() {
   try {
@@ -25,8 +26,25 @@ export function initScheduler() {
     // 2. Wake from sleep / Unlock screen
     const handleWake = () => {
       try {
+        // Calculate total away time
+        const now = Date.now();
         const wakeTrigger = db.prepare('SELECT value FROM settings WHERE key = ?').get('wakeTrigger');
-        if (wakeTrigger?.value === '1') {
+        
+        // Handle Inactivity across sleep
+        const inactivityHoursSetting = db.prepare('SELECT value FROM settings WHERE key = ?').get('inactivityHours');
+        const inactivityHours = parseFloat(inactivityHoursSetting?.value || '6');
+        const inactivityMs = inactivityHours * 3600 * 1000;
+
+        let awayTimeMs = 0;
+        if (lastSuspendTime) {
+          awayTimeMs = now - lastSuspendTime;
+          lastSuspendTime = null;
+        }
+
+        if (awayTimeMs >= inactivityMs) {
+          console.log('Scheduler: Total away time exceeded inactivity threshold, triggering quote');
+          triggerRandomQuote();
+        } else if (wakeTrigger?.value === '1') {
           console.log('Scheduler: Triggering wake quote');
           triggerRandomQuote();
         }
@@ -35,6 +53,9 @@ export function initScheduler() {
       }
     };
 
+    powerMonitor.on('suspend', () => {
+      lastSuspendTime = Date.now();
+    });
     powerMonitor.on('resume', handleWake);
     powerMonitor.on('unlock-screen', handleWake);
 

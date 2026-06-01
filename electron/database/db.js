@@ -105,12 +105,12 @@ export function initDb() {
   if (count === 0) {
     const defaultSettings = [
       ['theme', 'dark'],
-      ['opacity', '0.9'],
+      ['opacity', '0.1'],
       ['fontSize', '54'],
       ['overlayDuration', '10'],
       ['inactivityHours', '4'],
       ['startupTrigger', '1'],
-      ['wakeTrigger', '1'],
+      ['wakeTrigger', '0'],
       ['launchAtStartup', '1'],
       ['minimizeToTray', '1']
     ];
