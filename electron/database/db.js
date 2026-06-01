@@ -105,7 +105,7 @@ export function initDb() {
   if (count === 0) {
     const defaultSettings = [
       ['theme', 'dark'],
-      ['opacity', '0.1'],
+      ['opacity', '0.15'],
       ['fontSize', '54'],
       ['overlayDuration', '10'],
       ['inactivityHours', '4'],
